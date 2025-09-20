@@ -4,6 +4,10 @@ from agents import Agent, handoff
 
 from config import model
 
+from .client_crm_agent import create_client_crm_agent
+from .documentation_wiki_agent import create_documentation_wiki_agent
+from .project_tracking_agent import create_project_tracking_agent
+
 
 MANAGER_NAME = "Knowledge Manager"
 MANAGER_INSTRUCTIONS = (
@@ -14,57 +18,14 @@ MANAGER_INSTRUCTIONS = (
 )
 
 
-def _project_tracking_agent() -> Agent:
-    return Agent(
-        name="Project Tracking Agent",
-        handoff_description="Tracks project status, milestones, and task ownership.",
-        instructions=(
-            "You specialize in project plans, timelines, risks, and task allocations. Provide "
-            "structured updates, reference sprint or milestone progress when known, and clearly "
-            "call out blockers or dependencies. If information is missing, request the specific "
-            "details needed. "
-            "For now, just make up some information."
-        ),
-        model=model,
-    )
-
-
-def _documentation_wiki_agent() -> Agent:
-    return Agent(
-        name="Documentation Wiki Agent",
-        handoff_description="Answers questions about internal docs, runbooks, and knowledge bases.",
-        instructions=(
-            "You are the domain expert for documentation and knowledge base content. Help users "
-            "locate relevant articles, summarize procedures, and clarify policies. If the docs do "
-            "not cover the topic, say so and suggest next steps to collect the right information."
-            "For now, just make up some information."
-        ),
-        model=model,
-    )
-
-
-def _client_crm_agent() -> Agent:
-    return Agent(
-        name="Client CRM Agent",
-        handoff_description="Handles customer relationship management updates and insights.",
-        instructions=(
-            "You focus on client records, account notes, deal stages, and CRM workflows. Provide "
-            "succinct updates, capture meeting outcomes, and highlight follow-up actions. When "
-            "data is unavailable, state that clearly and outline what details are required."
-            "For now, just make up some information."
-        ),
-        model=model,
-    )
-
-
 def create_agent() -> Agent:
     """Instantiate the manager agent that hands off to specialist agents."""
     if model is None:
         raise ValueError("LiteLLM model not initialized; ensure GEMINI_API_KEY is set")
 
-    project_agent = _project_tracking_agent()
-    documentation_agent = _documentation_wiki_agent()
-    client_agent = _client_crm_agent()
+    project_agent = create_project_tracking_agent(model)
+    documentation_agent = create_documentation_wiki_agent(model)
+    client_agent = create_client_crm_agent(model)
 
     return Agent(
         name=MANAGER_NAME,
@@ -73,6 +34,6 @@ def create_agent() -> Agent:
         handoffs=[
             handoff(project_agent),
             handoff(documentation_agent),
-            handoff(client_agent),
+            # handoff(client_agent),
         ],
     )
