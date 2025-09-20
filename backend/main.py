@@ -1,12 +1,10 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List
 from fastapi.middleware.cors import CORSMiddleware
 
-import os
-import asyncio
-from agents import Agent, Runner, function_tool
-from agents.extensions.models.litellm_model import LitellmModel
+from agents import Runner, set_tracing_disabled
+from config import config
 
 # ---------- FastAPI setup ----------
 app = FastAPI()
@@ -30,56 +28,31 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     text: str
 
-# ---------- Function tools ----------
-@function_tool
-def get_weather(city: str):
-    """Get weather information for a city."""
-    print(f"[debug] getting weather for {city}")
-    return f"The weather in {city} is sunny with 22°C."
-
-@function_tool
-def calculate(expression: str):
-    """Calculate a mathematical expression safely."""
-    try:
-        # Simple safe evaluation for basic math
-        result = eval(expression, {"__builtins__": {}}, {})
-        return f"The result of {expression} is {result}"
-    except Exception as e:
-        return f"Cannot calculate {expression}: {str(e)}"
-
 # ---------- Main agent function ----------
-async def main(model: str, api_key: str, user_message: str):
-    """Main function that creates and runs the agent following OpenAI Agents documentation pattern."""
-    agent = Agent(
-        name="Gemini Assistant",
-        instructions="You are a helpful and concise assistant. You can help with weather information and calculations.",
-        model=LitellmModel(model=model, api_key=api_key),
-        tools=[get_weather, calculate],
-    )
-
+async def run_agent(user_message: str):
+    """Run the agent with the given user message."""
+    set_tracing_disabled(True)  # disable tracing for litellm, can be enabled if openai api key is available
+    agent = config.create_agent()
     result = await Runner.run(agent, user_message)
     return result.final_output
 
 # ---------- FastAPI route ----------
 @app.post("/")
 async def chat_endpoint(request: ChatRequest) -> ChatResponse:
-    """Async chat endpoint that uses asyncio.run pattern from OpenAI Agents documentation."""
+    """Async chat endpoint that uses the configuration-based agent setup."""
     if not request.messages:
         return ChatResponse(text="No messages received")
     
     try:
-        # Get API key and model from environment
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
+        # Check if API key is configured
+        if not config.validate_api_key():
             return ChatResponse(text="Error: GEMINI_API_KEY environment variable not set")
-        
-        model = "gemini/gemini-2.0-flash"  # Using Gemini Pro as specified in LiteLLM docs
         
         # Get the last user message
         last_msg = request.messages[-1].content if request.messages else "No input"
         
-        # Run the main function following the OpenAI Agents documentation pattern
-        response_text = await main(model, api_key, last_msg)
+        # Run the agent
+        response_text = await run_agent(last_msg)
         
         return ChatResponse(text=response_text)
         
