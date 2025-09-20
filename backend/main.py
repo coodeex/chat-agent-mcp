@@ -1,17 +1,39 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+from typing import List, Dict, Any
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-class MessageRequest(BaseModel):
-    message: str
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-class MessageResponse(BaseModel):
-    message: str
+class Message(BaseModel):
+    role: str
+    content: str
 
-@app.post("/mirror")
-def mirror_message(request: MessageRequest) -> MessageResponse:
-    return MessageResponse(message=request.message)
+class ChatRequest(BaseModel):
+    messages: List[Message]
+
+class ChatResponse(BaseModel):
+    text: str
+
+@app.post("/")
+def chat_endpoint(request: ChatRequest) -> ChatResponse:
+    # Get the last message from the user
+    if request.messages:
+        last_message = request.messages[-1]
+        # Echo back the user's message with a simple response
+        response_text = f"You said: {last_message.content}"
+    else:
+        response_text = "No messages received"
+    
+    return ChatResponse(text=response_text)
 
 if __name__ == "__main__":
     import uvicorn
