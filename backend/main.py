@@ -33,7 +33,7 @@ def chat_endpoint(request: ChatRequest) -> ChatResponse:
     else:
         response_text = "No messages received"
     
-    return ChatResponse(text=response_text)
+    return {"text": response_text}
 
 if __name__ == "__main__":
     import uvicorn
