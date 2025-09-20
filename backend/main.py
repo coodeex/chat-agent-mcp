@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from agents import Runner, set_tracing_disabled
 from config import config
+from services.manager import create_agent
 
 # ---------- FastAPI setup ----------
 app = FastAPI()
@@ -32,7 +33,7 @@ class ChatResponse(BaseModel):
 async def run_agent(user_message: str):
     """Run the agent with the given user message."""
     set_tracing_disabled(True)  # disable tracing for litellm, can be enabled if openai api key is available
-    agent = config.create_agent()
+    agent = create_agent()
     result = await Runner.run(agent, user_message)
     return result.final_output
 

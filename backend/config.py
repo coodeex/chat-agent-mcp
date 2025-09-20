@@ -1,62 +1,45 @@
-"""
-Configuration file for LiteLLM model setup and agent configuration.
-"""
+"""Configuration helpers for LiteLLM model setup."""
 
 import os
-from typing import List, Optional
-from agents import Agent, function_tool
+from typing import Optional
+
 from agents.extensions.models.litellm_model import LitellmModel
 
 
-# ---------- Function tools ----------
-@function_tool
-def get_weather(city: str):
-    """Get weather information for a city."""
-    print(f"[debug] getting weather for {city}")
-    return f"The weather in {city} is sunny with 22°C."
-
-
-@function_tool
-def calculate(expression: str):
-    """Calculate a mathematical expression safely."""
-    try:
-        # Simple safe evaluation for basic math
-        result = eval(expression, {"__builtins__": {}}, {})
-        return f"The result of {expression} is {result}"
-    except Exception as e:
-        return f"Cannot calculate {expression}: {str(e)}"
-
-
 class LiteLLMConfig:
-    """Configuration class for LiteLLM model and agent setup."""
-    
+    """Configuration class that exposes a LiteLLM model factory."""
+
     def __init__(self):
         self.model_name = "gemini/gemini-2.0-flash"
-        self.agent_name = "Gemini Assistant"
-        self.agent_instructions = "You are a helpful and concise assistant. You can help with weather information and calculations."
-        self.tools = [get_weather, calculate]
-    
+
     def get_api_key(self) -> Optional[str]:
         """Get the Gemini API key from environment variables."""
         return os.getenv("GEMINI_API_KEY")
-    
+
     def validate_api_key(self) -> bool:
         """Check if API key is available."""
         return self.get_api_key() is not None
-    
-    def create_agent(self) -> Agent:
-        """Create and return a configured Agent instance."""
+
+    def create_model(self) -> LitellmModel:
+        """Return a configured LiteLLM model instance."""
         api_key = self.get_api_key()
         if not api_key:
             raise ValueError("GEMINI_API_KEY environment variable not set")
-        
-        return Agent(
-            name=self.agent_name,
-            instructions=self.agent_instructions,
-            model=LitellmModel(model=self.model_name, api_key=api_key),
-            tools=self.tools,
-        )
+
+        return LitellmModel(model=self.model_name, api_key=api_key)
 
 
 # Global configuration instance
 config = LiteLLMConfig()
+
+
+def _initialize_model() -> Optional[LitellmModel]:
+    """Attempt to create the shared LiteLLM model, returning None on config errors."""
+    try:
+        return config.create_model()
+    except ValueError:
+        return None
+
+
+# Exposed shared model instance for agent wiring.
+model: Optional[LitellmModel] = _initialize_model()
