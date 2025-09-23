@@ -56,7 +56,7 @@ def _get_last_user_message(messages: List[Message]) -> str:
 async def run_agent(conversation: str):
     """Run the agent with the conversation context."""
     set_tracing_disabled(True)  # disable tracing for litellm, can be enabled if openai api key is available
-    agent = create_agent()
+    agent = await create_agent()
     result = await Runner.run(agent, conversation)
     return result.final_output
 

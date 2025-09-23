@@ -7,6 +7,7 @@ from config import model
 from .client_crm_agent import create_client_crm_agent
 from .documentation_wiki_agent import create_documentation_wiki_agent
 from .project_tracking_agent import create_project_tracking_agent
+from .cat_agent import create_cat_agent
 
 
 MANAGER_NAME = "Knowledge Manager"
@@ -18,7 +19,7 @@ MANAGER_INSTRUCTIONS = (
 )
 
 
-def create_agent() -> Agent:
+async def create_agent() -> Agent:
     """Instantiate the manager agent that hands off to specialist agents."""
     if model is None:
         raise ValueError("LiteLLM model not initialized; ensure GEMINI_API_KEY is set")
@@ -26,6 +27,7 @@ def create_agent() -> Agent:
     project_agent = create_project_tracking_agent(model)
     documentation_agent = create_documentation_wiki_agent(model)
     client_agent = create_client_crm_agent(model)
+    cat_agent = await create_cat_agent(model)
 
     return Agent(
         name=MANAGER_NAME,
@@ -34,6 +36,7 @@ def create_agent() -> Agent:
         handoffs=[
             handoff(project_agent),
             handoff(documentation_agent),
+            handoff(cat_agent),
             # handoff(client_agent),
         ],
     )
